@@ -1,7 +1,8 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/huggingface_transformers";
-import { QdrantVectorStore } from "@langchain/qdrant";
+import { Pinecone } from "@pinecone-database/pinecone";
+import { PineconeStore } from "@langchain/pinecone";
 
 export async function ingestDocument(filePath, collectionName) {
     try {
@@ -33,7 +34,6 @@ export async function ingestDocument(filePath, collectionName) {
             embeddings = new HuggingFaceTransformersEmbeddings({
                 modelName: "Xenova/all-MiniLM-L6-v2",
             });
-            // Force model download/cache on initialization
             await embeddings.embedQuery("test");
             console.log("Embeddings model ready");
         } catch (embedError) {
@@ -41,34 +41,38 @@ export async function ingestDocument(filePath, collectionName) {
             throw new Error(`Embedding model failed: ${embedError.message}`);
         }
 
-        // 4. Storage: Index into Qdrant
-        const qdrantUrl = process.env.QDRANT_URL;
-        const qdrantApiKey = process.env.QDRANT_API_KEY;
-        
-        console.log(`\nQdrant Configuration:`);
-        console.log(`  URL: ${qdrantUrl ? qdrantUrl.substring(0, 50) + '...' : 'NOT SET'}`);
-        console.log(`  API Key: ${qdrantApiKey ? '***SET***' : 'NOT SET'}\n`);
-        
-        if (!qdrantUrl) {
-            throw new Error("QDRANT_URL environment variable is not set. Check your Render environment variables.");
+        // 4. Storage: Index into Pinecone
+        const pineconeApiKey = process.env.PINECONE_API_KEY;
+        const pineconeIndex = process.env.PINECONE_INDEX;
+
+        console.log(`\nPinecone Configuration:`);
+        console.log(`  API Key: ${pineconeApiKey ? '***SET***' : 'NOT SET'}`);
+        console.log(`  Index: ${pineconeIndex ? pineconeIndex : 'NOT SET'}\n`);
+
+        if (!pineconeApiKey) {
+            throw new Error("PINECONE_API_KEY environment variable is not set.");
+        }
+        if (!pineconeIndex) {
+            throw new Error("PINECONE_INDEX environment variable is not set.");
         }
 
         try {
-            const vectorStore = await QdrantVectorStore.fromDocuments(chunks, embeddings, {
-                url: qdrantUrl,
-                apiKey: qdrantApiKey,
-                collectionName: collectionName,
-                checkCompatibility: false // Skip version check for cloud
+            const pinecone = new Pinecone({ apiKey: pineconeApiKey });
+            const index = pinecone.index(pineconeIndex);
+
+            const vectorStore = await PineconeStore.fromDocuments(chunks, embeddings, {
+                pineconeIndex: index,
+                namespace: collectionName,
             });
-            
-            console.log(`Successfully ingested ${chunks.length} chunks into Qdrant collection: ${collectionName}`);
+
+            console.log(`Successfully ingested ${chunks.length} chunks into Pinecone index: ${pineconeIndex}, namespace: ${collectionName}`);
             return { success: true, chunksCount: chunks.length };
-        } catch (qdrantError) {
-            console.error("Qdrant connection/storage error:", qdrantError.message);
-            console.error("Full error:", qdrantError);
-            throw new Error(`Qdrant error: ${qdrantError.message}`);
+        } catch (pineconeError) {
+            console.error("Pinecone connection/storage error:", pineconeError.message);
+            console.error("Full error:", pineconeError);
+            throw new Error(`Pinecone error: ${pineconeError.message}`);
         }
-        
+
     } catch (error) {
         console.error("Error during document ingestion:", error.message);
         throw error;

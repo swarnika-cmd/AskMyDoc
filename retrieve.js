@@ -1,6 +1,7 @@
 import { ChatGroq } from "@langchain/groq";
 import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/huggingface_transformers";
-import { QdrantVectorStore } from "@langchain/qdrant";
+import { Pinecone } from "@pinecone-database/pinecone";
+import { PineconeStore } from "@langchain/pinecone";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -9,12 +10,14 @@ export async function askQuestion(query, collectionName) {
     try {
         console.log(`Searching for context to answer: "${query}"`);
 
-        // Validate Qdrant configuration
-        const qdrantUrl = process.env.QDRANT_URL;
-        const qdrantApiKey = process.env.QDRANT_API_KEY;
-        
-        if (!qdrantUrl) {
-            throw new Error("QDRANT_URL environment variable is not set. Check your Render environment variables.");
+        const pineconeApiKey = process.env.PINECONE_API_KEY;
+        const pineconeIndex = process.env.PINECONE_INDEX;
+
+        if (!pineconeApiKey) {
+            throw new Error("PINECONE_API_KEY environment variable is not set.");
+        }
+        if (!pineconeIndex) {
+            throw new Error("PINECONE_INDEX environment variable is not set.");
         }
 
         // 1. Re-initialize the same embeddings model used for ingestion
@@ -22,25 +25,24 @@ export async function askQuestion(query, collectionName) {
             modelName: "Xenova/all-MiniLM-L6-v2",
         });
 
-        // 2. Connect to the existing Qdrant Vector Store
-        const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
-            url: qdrantUrl,
-            apiKey: qdrantApiKey,
-            collectionName: collectionName,
-            checkCompatibility: false // Skip version check for cloud
+        // 2. Connect to the existing Pinecone Vector Store
+        const pinecone = new Pinecone({ apiKey: pineconeApiKey });
+        const index = pinecone.index(pineconeIndex);
+
+        const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+            pineconeIndex: index,
+            namespace: collectionName,
         });
 
         // 3. Set up the Retriever to fetch the top 3 most relevant chunks
-        const retriever = vectorStore.asRetriever({
-            k: 3
-        });
+        const retriever = vectorStore.asRetriever({ k: 3 });
         const searchedChunks = await retriever.invoke(query);
 
         // 4. Initialize Groq LLM
         const model = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY,
-            model: "llama-3.1-8b-instant", 
-            temperature: 0, // 0 temperature ensures deterministic, grounded answers
+            model: "llama-3.1-8b-instant",
+            temperature: 0,
         });
 
         // 5. Construct the strictly grounded System Prompt
@@ -62,7 +64,7 @@ export async function askQuestion(query, collectionName) {
 
         return {
             answer: response.content,
-            sources: searchedChunks // Sending sources back so the UI can prove it didn't hallucinate
+            sources: searchedChunks
         };
     } catch (error) {
         console.error("Error during retrieval:", error);
