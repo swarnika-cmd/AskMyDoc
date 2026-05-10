@@ -1,0 +1,455 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --nb-ink:#0f0e0d;--nb-paper:#faf9f6;--nb-cream:#f2f0ea;--nb-gold:#b5861a;
+    --nb-gold-light:#f5edda;--nb-green:#1a5c3a;--nb-green-light:#e4f0ea;
+    --nb-muted:#6b6760;--nb-border:#e2ddd4;--nb-white:#ffffff;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--nb-paper);color:var(--nb-ink);line-height:1.6;font-size:15px}
+  .serif{font-family:'Fraunces',serif}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 2.5rem;border-bottom:1px solid var(--nb-border);background:var(--nb-paper);position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px}
+  .logo-mark{width:34px;height:34px;background:var(--nb-ink);border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .logo-mark svg{width:20px;height:20px;fill:var(--nb-paper)}
+  .nav-brand{font-family:'Fraunces',serif;font-size:18px;font-weight:600;letter-spacing:-0.3px}
+  .nav-links{display:flex;align-items:center;gap:2rem}
+  .nav-links a{font-size:14px;color:var(--nb-muted);text-decoration:none;font-weight:400}
+  .nav-links a:hover{color:var(--nb-ink)}
+  .nav-cta{background:var(--nb-ink);color:var(--nb-paper)!important;padding:9px 20px;border-radius:8px;font-size:14px;font-weight:500!important}
+
+  section{padding:5rem 2.5rem}
+  .container{max-width:820px;margin:0 auto}
+
+  /* HERO */
+  .hero{padding:6rem 2.5rem 5rem;text-align:center;background:var(--nb-paper);position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse 60% 40% at 50% 0%, #e8e2d4 0%, transparent 70%);pointer-events:none}
+  .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--nb-gold-light);border:1px solid #d4a93a40;padding:7px 16px;border-radius:100px;font-size:13px;color:var(--nb-gold);font-weight:500;margin-bottom:2rem}
+  .hero-badge .dot{width:7px;height:7px;background:var(--nb-gold);border-radius:50%;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+  h1.hero-title{font-family:'Fraunces',serif;font-size:clamp(2.4rem,5vw,3.6rem);font-weight:300;line-height:1.15;letter-spacing:-0.5px;margin-bottom:1.5rem;max-width:700px;margin-left:auto;margin-right:auto}
+  h1.hero-title em{font-style:italic;color:var(--nb-green)}
+  .hero-sub{font-size:16px;color:var(--nb-muted);max-width:480px;margin:0 auto 2.5rem;line-height:1.75}
+  .hero-actions{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:3rem;flex-wrap:wrap}
+  .btn-primary{background:var(--nb-ink);color:var(--nb-paper);padding:13px 28px;border-radius:10px;font-size:15px;font-weight:500;text-decoration:none;border:none;cursor:pointer;transition:transform .15s,opacity .15s}
+  .btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+  .btn-outline{background:transparent;color:var(--nb-ink);padding:12px 24px;border-radius:10px;font-size:15px;font-weight:400;text-decoration:none;border:1.5px solid var(--nb-border);cursor:pointer;transition:border-color .15s,transform .15s}
+  .btn-outline:hover{border-color:var(--nb-muted);transform:translateY(-1px)}
+  .hero-trust{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--nb-muted)}
+  .stars{color:#d4a93a;letter-spacing:2px;font-size:14px}
+
+  /* DEMO WIDGET */
+  .demo-wrap{max-width:740px;margin:0 auto;background:var(--nb-white);border:1px solid var(--nb-border);border-radius:16px;overflow:hidden;box-shadow:0 4px 40px rgba(15,14,13,.07)}
+  .demo-topbar{background:var(--nb-cream);border-bottom:1px solid var(--nb-border);padding:12px 16px;display:flex;align-items:center;gap:8px}
+  .demo-dot{width:10px;height:10px;border-radius:50%}
+  .demo-filename{font-size:13px;color:var(--nb-muted);margin-left:8px;display:flex;align-items:center;gap:6px}
+  .demo-body{display:grid;grid-template-columns:240px 1fr;min-height:320px}
+  .demo-sidebar{border-right:1px solid var(--nb-border);padding:1rem}
+  .demo-sidebar-title{font-size:11px;font-weight:500;color:var(--nb-muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:.75rem}
+  .doc-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:13px;margin-bottom:4px;cursor:default}
+  .doc-item.active{background:var(--nb-cream);color:var(--nb-ink)}
+  .doc-item:not(.active){color:var(--nb-muted)}
+  .doc-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+  .doc-icon.pdf{background:#ffecec;color:#c0392b}
+  .doc-icon.doc{background:#e8f0fe;color:#1a56b8}
+  .doc-icon.csv{background:#e6f4ea;color:#1a5c3a}
+  .demo-chat{display:flex;flex-direction:column;padding:1rem;gap:.75rem;overflow:hidden}
+  .chat-msg{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6;max-width:90%}
+  .chat-msg.ai{background:var(--nb-cream);color:var(--nb-ink);border-bottom-left-radius:3px}
+  .chat-msg.user{background:var(--nb-ink);color:var(--nb-paper);align-self:flex-end;border-bottom-right-radius:3px;max-width:75%}
+  .ai-name{font-size:11px;font-weight:500;color:var(--nb-muted);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+  .chat-input-wrap{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--nb-border);margin-top:auto}
+  .chat-input-fake{flex:1;background:var(--nb-cream);border:1px solid var(--nb-border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--nb-muted)}
+  .send-btn{width:32px;height:32px;background:var(--nb-ink);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .send-btn svg{width:14px;height:14px;fill:none;stroke:var(--nb-paper);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* LOGOS */
+  .logos-section{padding:3rem 2.5rem;border-top:1px solid var(--nb-border);border-bottom:1px solid var(--nb-border);text-align:center}
+  .logos-label{font-size:13px;color:var(--nb-muted);margin-bottom:1.5rem;font-weight:400}
+  .logos-row{display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
+  .logo-pill{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--nb-muted);opacity:.55;letter-spacing:-0.3px}
+
+  /* FEATURES */
+  .section-label{font-size:12px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--nb-green);margin-bottom:.75rem}
+  .section-title{font-family:'Fraunces',serif;font-size:clamp(1.7rem,3.5vw,2.4rem);font-weight:300;line-height:1.25;letter-spacing:-0.3px;margin-bottom:1rem}
+  .section-sub{color:var(--nb-muted);max-width:480px;line-height:1.75}
+  .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-top:3rem}
+  .feat-card{background:var(--nb-white);border:1px solid var(--nb-border);border-radius:14px;padding:1.5rem}
+  .feat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:20px}
+  .feat-icon.g{background:var(--nb-green-light)}
+  .feat-icon.a{background:var(--nb-gold-light)}
+  .feat-icon.b{background:#edf2ff}
+  .feat-icon.p{background:#f5edfa}
+  .feat-card h3{font-size:15px;font-weight:500;margin-bottom:.5rem;letter-spacing:-.2px}
+  .feat-card p{font-size:13.5px;color:var(--nb-muted);line-height:1.65}
+
+  /* HOW IT WORKS */
+  .how-section{background:var(--nb-cream)}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;margin-top:3rem}
+  .step{text-align:center}
+  .step-num{font-family:'Fraunces',serif;font-size:3rem;font-weight:300;color:var(--nb-border);line-height:1;margin-bottom:.75rem}
+  .step h3{font-size:15px;font-weight:500;margin-bottom:.5rem}
+  .step p{font-size:13.5px;color:var(--nb-muted);line-height:1.65}
+
+  /* TESTIMONIALS */
+  .testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin-top:3rem}
+  .testi-card{background:var(--nb-white);border:1px solid var(--nb-border);border-radius:14px;padding:1.5rem}
+  .testi-stars{color:#d4a93a;font-size:13px;margin-bottom:.75rem;letter-spacing:2px}
+  .testi-quote{font-family:'Fraunces',serif;font-size:15px;font-weight:300;font-style:italic;line-height:1.65;color:var(--nb-ink);margin-bottom:1rem}
+  .testi-author{display:flex;align-items:center;gap:10px}
+  .testi-avatar{width:34px;height:34px;border-radius:50%;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;color:var(--nb-white)}
+  .testi-name{font-size:13px;font-weight:500;line-height:1.3}
+  .testi-role{font-size:12px;color:var(--nb-muted)}
+
+  /* PRICING */
+  .pricing-section{background:var(--nb-paper)}
+  .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-top:3rem}
+  .price-card{background:var(--nb-white);border:1px solid var(--nb-border);border-radius:16px;padding:2rem}
+  .price-card.featured{border:2px solid var(--nb-ink);position:relative}
+  .popular-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--nb-ink);color:var(--nb-paper);font-size:12px;padding:4px 16px;border-radius:100px;white-space:nowrap}
+  .price-plan{font-size:13px;font-weight:500;color:var(--nb-muted);margin-bottom:.75rem}
+  .price-amount{font-family:'Fraunces',serif;font-size:2.5rem;font-weight:300;letter-spacing:-1px;line-height:1;margin-bottom:.25rem}
+  .price-amount span{font-size:1rem;font-weight:400;color:var(--nb-muted)}
+  .price-desc{font-size:13px;color:var(--nb-muted);margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--nb-border)}
+  .price-feat{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.75rem}
+  .price-feat li{font-size:13.5px;display:flex;align-items:flex-start;gap:8px;color:var(--nb-ink)}
+  .price-feat li::before{content:'✓';color:var(--nb-green);font-weight:500;flex-shrink:0;margin-top:1px}
+  .price-feat li.na{color:var(--nb-muted)}
+  .price-feat li.na::before{content:'—';color:var(--nb-border)}
+  .btn-plan{width:100%;padding:11px;border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;border:1.5px solid var(--nb-border);background:transparent;color:var(--nb-ink);transition:all .15s}
+  .btn-plan:hover{border-color:var(--nb-ink)}
+  .btn-plan.dark{background:var(--nb-ink);color:var(--nb-paper);border-color:var(--nb-ink)}
+  .btn-plan.dark:hover{opacity:.88}
+
+  /* FAQ */
+  .faq-section{background:var(--nb-cream)}
+  .faq-list{margin-top:2.5rem;display:flex;flex-direction:column;gap:.75rem;max-width:640px}
+  .faq-item{background:var(--nb-white);border:1px solid var(--nb-border);border-radius:12px;overflow:hidden}
+  .faq-q{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;cursor:pointer;font-weight:500;font-size:14.5px;gap:1rem}
+  .faq-q .chevron{font-size:18px;color:var(--nb-muted);transition:transform .2s;flex-shrink:0;line-height:1}
+  .faq-a{padding:0 1.25rem;max-height:0;overflow:hidden;transition:max-height .25s,padding .25s;font-size:14px;color:var(--nb-muted);line-height:1.7}
+  .faq-item.open .faq-a{max-height:200px;padding:0 1.25rem 1rem}
+  .faq-item.open .chevron{transform:rotate(180deg)}
+
+  /* FOOTER CTA */
+  .cta-section{text-align:center;padding:6rem 2.5rem;background:var(--nb-ink)}
+  .cta-section h2{font-family:'Fraunces',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:300;color:var(--nb-paper);margin-bottom:1rem;line-height:1.2}
+  .cta-section p{color:#a09c95;margin-bottom:2rem;font-size:16px}
+  .btn-cta-white{background:var(--nb-paper);color:var(--nb-ink);padding:14px 32px;border-radius:10px;font-size:15px;font-weight:500;text-decoration:none;border:none;cursor:pointer;transition:opacity .15s}
+  .btn-cta-white:hover{opacity:.9}
+  footer{padding:2rem 2.5rem;border-top:1px solid var(--nb-border);display:flex;justify-content:space-between;align-items:center;background:var(--nb-paper);flex-wrap:wrap;gap:1rem}
+  .footer-links{display:flex;gap:1.5rem}
+  .footer-links a{font-size:13px;color:var(--nb-muted);text-decoration:none}
+  .footer-links a:hover{color:var(--nb-ink)}
+  .footer-copy{font-size:13px;color:var(--nb-muted)}
+</style>
+
+<nav>
+  <div class="nav-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20"><path d="M4 3h12v2H4zM4 7h8v2H4zM4 11h12v2H4zM4 15h6v2H4z"/></svg>
+    </div>
+    <span class="nav-brand">NotebookLM</span>
+  </div>
+  <div class="nav-links">
+    <a href="#">Features</a>
+    <a href="#">How it works</a>
+    <a href="#">Pricing</a>
+    <a href="/app.html" class="nav-cta">Start free</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><span class="dot"></span> RAG-powered document intelligence</div>
+  <h1 class="hero-title">Your documents, finally <em>answering back</em></h1>
+  <p class="hero-sub">Upload any PDF, Word doc, or spreadsheet and have a real conversation with it. Get instant answers, summaries, and insights — grounded in your own content.</p>
+  <div class="hero-actions">
+    <a href="/app.html" class="btn-primary">Upload your first doc →</a>
+    <a href="#" class="btn-outline">See it in action</a>
+  </div>
+  <div class="hero-trust">
+    <span class="stars">★★★★★</span>
+    <span>Trusted by 12,000+ researchers, students & teams</span>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section style="padding:0 2.5rem 4rem;background:var(--nb-paper)">
+  <div class="demo-wrap">
+    <div class="demo-topbar">
+      <div class="demo-dot" style="background:#ff5f57"></div>
+      <div class="demo-dot" style="background:#febc2e"></div>
+      <div class="demo-dot" style="background:#28c840"></div>
+      <div class="demo-filename">
+        <i class="ti ti-file-text" style="font-size:14px" aria-hidden="true"></i>
+        research-paper-2024.pdf — NotebookLM
+      </div>
+    </div>
+    <div class="demo-body">
+      <div class="demo-sidebar">
+        <div class="demo-sidebar-title">Your notebooks</div>
+        <div class="doc-item active">
+          <div class="doc-icon pdf">📄</div>
+          <div><div style="font-weight:500">Research Paper</div><div style="font-size:11px;color:var(--nb-muted)">24 pages</div></div>
+        </div>
+        <div class="doc-item">
+          <div class="doc-icon doc">📝</div>
+          <div><div>Q3 Report</div></div>
+        </div>
+        <div class="doc-item">
+          <div class="doc-icon csv">📊</div>
+          <div><div>Survey Data</div></div>
+        </div>
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--nb-border)">
+          <button style="width:100%;padding:8px;border-radius:8px;border:1.5px dashed var(--nb-border);background:transparent;font-size:12px;color:var(--nb-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            <i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> Add document
+          </button>
+        </div>
+      </div>
+      <div class="demo-chat" style="flex-direction:column;display:flex">
+        <div style="flex:1;display:flex;flex-direction:column;gap:.75rem;padding:.75rem .5rem">
+          <div>
+            <div class="ai-name"><i class="ti ti-sparkles" style="font-size:12px" aria-hidden="true"></i> NotebookLM</div>
+            <div class="chat-msg ai">I've read your research paper. It covers transformer architectures for NLP. What would you like to know?</div>
+          </div>
+          <div class="chat-msg user">What were the key findings on attention mechanisms?</div>
+          <div>
+            <div class="ai-name"><i class="ti ti-sparkles" style="font-size:12px" aria-hidden="true"></i> NotebookLM</div>
+            <div class="chat-msg ai">The paper found that multi-head self-attention with 12 heads outperformed single-head by 14.3% on BLEU score <span style="background:var(--nb-gold-light);color:var(--nb-gold);font-size:11px;padding:1px 6px;border-radius:4px">p.7</span></div>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-input-fake">Ask anything about your document...</div>
+          <div class="send-btn"><svg viewBox="0 0 16 16"><line x1="1" y1="8" x2="15" y2="8"/><polyline points="8 1 15 8 8 15"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos-section">
+  <p class="logos-label">Used by teams at</p>
+  <div class="logos-row">
+    <span class="logo-pill">Stanford</span>
+    <span class="logo-pill">McKinsey</span>
+    <span class="logo-pill">Notion</span>
+    <span class="logo-pill">Harvard</span>
+    <span class="logo-pill">Stripe</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section style="padding:5rem 2.5rem;background:var(--nb-paper)">
+  <div class="container">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything you need to work smarter</h2>
+    <p class="section-sub">Stop rereading documents. Ask, explore, and understand — in seconds.</p>
+  </div>
+  <div class="features-grid" style="max-width:820px;margin:3rem auto 0">
+    <div class="feat-card">
+      <div class="feat-icon g"><i class="ti ti-upload" style="font-size:20px;color:#1a5c3a" aria-hidden="true"></i></div>
+      <h3>Upload any format</h3>
+      <p>PDF, DOCX, TXT, CSV, EPUB — drag-and-drop any file and we handle the rest.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon a"><i class="ti ti-message-chatbot" style="font-size:20px;color:#b5861a" aria-hidden="true"></i></div>
+      <h3>Grounded answers</h3>
+      <p>Every answer cites the exact page and paragraph it came from. No hallucinations.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon b"><i class="ti ti-notes" style="font-size:20px;color:#1a56b8" aria-hidden="true"></i></div>
+      <h3>Auto summaries</h3>
+      <p>Get a structured summary of any document the moment you upload it.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon p"><i class="ti ti-users" style="font-size:20px;color:#7c3aed" aria-hidden="true"></i></div>
+      <h3>Team notebooks</h3>
+      <p>Share notebooks with teammates and collaborate on research in real time.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon g"><i class="ti ti-search" style="font-size:20px;color:#1a5c3a" aria-hidden="true"></i></div>
+      <h3>Semantic search</h3>
+      <p>Find concepts, not just keywords. Search by meaning across all your notebooks.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon a"><i class="ti ti-lock" style="font-size:20px;color:#b5861a" aria-hidden="true"></i></div>
+      <h3>Private by default</h3>
+      <p>Your documents are encrypted and never used to train AI models. Ever.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" style="padding:5rem 2.5rem">
+  <div class="container">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Three steps to document clarity</h2>
+  </div>
+  <div class="steps" style="max-width:820px;margin:3rem auto 0">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Upload your document</h3>
+      <p>Drop in any PDF, Word doc, or spreadsheet. We process it instantly.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Ask your questions</h3>
+      <p>Type naturally — "What's the main argument?" or "Summarize section 3."</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Get cited answers</h3>
+      <p>Receive precise answers with page-level citations, ready to share or export.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="padding:5rem 2.5rem;background:var(--nb-paper)">
+  <div class="container">
+    <div class="section-label">Testimonials</div>
+    <h2 class="section-title">What researchers are saying</h2>
+  </div>
+  <div class="testi-grid" style="max-width:820px;margin:3rem auto 0">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"Saved me 3 hours of reading on a 90-page report. The citations make it actually trustworthy."</p>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:#1a5c3a">SK</div>
+        <div><div class="testi-name">Sneha Krishnan</div><div class="testi-role">PhD Researcher, IISc</div></div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"Our legal team uploads contracts and interrogates them in minutes. It's transformed due diligence."</p>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:#b5861a">AR</div>
+        <div><div class="testi-name">Arjun Rao</div><div class="testi-role">General Counsel, Series B startup</div></div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"I upload lecture notes and literally study by chatting. My exam scores went up 20%."</p>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:#7c3aed">PM</div>
+        <div><div class="testi-name">Priya Mehta</div><div class="testi-role">MBA Student, ISB</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" style="padding:5rem 2.5rem">
+  <div class="container" style="text-align:center">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, transparent pricing</h2>
+    <p class="section-sub" style="margin:0 auto">Start free. Upgrade when you need more power.</p>
+  </div>
+  <div class="pricing-grid" style="max-width:780px;margin:3rem auto 0">
+    <div class="price-card">
+      <div class="price-plan">Free</div>
+      <div class="price-amount">₹0<span>/mo</span></div>
+      <div class="price-desc">Perfect for personal use</div>
+      <ul class="price-feat">
+        <li>3 notebooks</li>
+        <li>50 MB storage</li>
+        <li>100 questions/month</li>
+        <li class="na">Team collaboration</li>
+        <li class="na">Priority support</li>
+      </ul>
+      <button class="btn-plan">Get started free</button>
+    </div>
+    <div class="price-card featured">
+      <div class="popular-badge">Most popular</div>
+      <div class="price-plan">Pro</div>
+      <div class="price-amount">₹799<span>/mo</span></div>
+      <div class="price-desc">For researchers & professionals</div>
+      <ul class="price-feat">
+        <li>Unlimited notebooks</li>
+        <li>5 GB storage</li>
+        <li>Unlimited questions</li>
+        <li>Team collaboration (5 seats)</li>
+        <li class="na">Dedicated support</li>
+      </ul>
+      <button class="btn-plan dark">Start Pro trial</button>
+    </div>
+    <div class="price-card">
+      <div class="price-plan">Team</div>
+      <div class="price-amount">₹2,499<span>/mo</span></div>
+      <div class="price-desc">For organizations & enterprises</div>
+      <ul class="price-feat">
+        <li>Everything in Pro</li>
+        <li>50 GB storage</li>
+        <li>Unlimited seats</li>
+        <li>SSO & admin controls</li>
+        <li>Dedicated support</li>
+      </ul>
+      <button class="btn-plan">Contact sales</button>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" style="padding:5rem 2.5rem">
+  <div class="container">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Common questions</h2>
+  </div>
+  <div class="faq-list" style="margin-left:auto;margin-right:auto;max-width:640px;margin-top:2.5rem">
+    <div class="faq-item">
+      <div class="faq-q">What file types are supported?<span class="chevron">⌄</span></div>
+      <div class="faq-a">We support PDF, DOCX, TXT, CSV, XLSX, EPUB, and HTML files. Max file size is 50 MB on the free plan and 200 MB on Pro and above.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Is my data private and secure?<span class="chevron">⌄</span></div>
+      <div class="faq-a">Absolutely. All documents are encrypted at rest and in transit. We never use your documents to train AI models, and you can delete them at any time.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">How accurate are the answers?<span class="chevron">⌄</span></div>
+      <div class="faq-a">Answers are grounded strictly in your uploaded documents with page-level citations. The system will not answer questions it cannot find evidence for, reducing hallucinations.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Can I use this via API?<span class="chevron">⌄</span></div>
+      <div class="faq-a">Yes — API access is available on the Team plan. You can programmatically upload documents and query them, making it easy to integrate into your existing workflows.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Do you offer a student discount?<span class="chevron">⌄</span></div>
+      <div class="faq-a">Yes! Students with a valid .edu email get 60% off the Pro plan. Just sign up and verify your email.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="cta-section">
+  <h2>Start talking to your documents today</h2>
+  <p>Free forever. No credit card required.</p>
+  <a href="/app.html"><button class="btn-cta-white">Upload your first document →</button></a>
+</section>
+
+<footer>
+  <div class="nav-logo">
+    <div class="logo-mark"><svg viewBox="0 0 20 20" style="width:20px;height:20px;fill:var(--nb-paper)"><path d="M4 3h12v2H4zM4 7h8v2H4zM4 11h12v2H4zM4 15h6v2H4z"/></svg></div>
+    <span class="nav-brand">NotebookLM</span>
+  </div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">API</a>
+    <a href="#">Blog</a>
+  </div>
+  <div class="footer-copy">© 2026 NotebookLM. All rights reserved.</div>
+</footer>
+
+<script>
+  document.querySelectorAll('.faq-q').forEach(q=>{
+    q.addEventListener('click',()=>{
+      const item=q.closest('.faq-item');
+      const wasOpen=item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+      if(!wasOpen)item.classList.add('open');
+    });
+  });
+</script>
