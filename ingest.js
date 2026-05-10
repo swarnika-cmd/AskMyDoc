@@ -42,15 +42,21 @@ export async function ingestDocument(filePath, collectionName) {
         }
 
         // 4. Storage: Index into Qdrant
-        console.log(`Connecting to Qdrant at: ${process.env.QDRANT_URL}`);
-        if (!process.env.QDRANT_URL) {
-            throw new Error("QDRANT_URL environment variable not set");
+        const qdrantUrl = process.env.QDRANT_URL;
+        const qdrantApiKey = process.env.QDRANT_API_KEY;
+        
+        console.log(`\nQdrant Configuration:`);
+        console.log(`  URL: ${qdrantUrl ? qdrantUrl.substring(0, 50) + '...' : 'NOT SET'}`);
+        console.log(`  API Key: ${qdrantApiKey ? '***SET***' : 'NOT SET'}\n`);
+        
+        if (!qdrantUrl) {
+            throw new Error("QDRANT_URL environment variable is not set. Check your Render environment variables.");
         }
 
         try {
             const vectorStore = await QdrantVectorStore.fromDocuments(chunks, embeddings, {
-                url: process.env.QDRANT_URL,
-                apiKey: process.env.QDRANT_API_KEY,
+                url: qdrantUrl,
+                apiKey: qdrantApiKey,
                 collectionName: collectionName
             });
             

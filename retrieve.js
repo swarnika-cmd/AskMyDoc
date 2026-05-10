@@ -9,6 +9,14 @@ export async function askQuestion(query, collectionName) {
     try {
         console.log(`Searching for context to answer: "${query}"`);
 
+        // Validate Qdrant configuration
+        const qdrantUrl = process.env.QDRANT_URL;
+        const qdrantApiKey = process.env.QDRANT_API_KEY;
+        
+        if (!qdrantUrl) {
+            throw new Error("QDRANT_URL environment variable is not set. Check your Render environment variables.");
+        }
+
         // 1. Re-initialize the same embeddings model used for ingestion
         const embeddings = new HuggingFaceTransformersEmbeddings({
             modelName: "Xenova/all-MiniLM-L6-v2",
@@ -16,8 +24,8 @@ export async function askQuestion(query, collectionName) {
 
         // 2. Connect to the existing Qdrant Vector Store
         const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
-            url: process.env.QDRANT_URL,
-            apiKey: process.env.QDRANT_API_KEY,
+            url: qdrantUrl,
+            apiKey: qdrantApiKey,
             collectionName: collectionName
         });
 
