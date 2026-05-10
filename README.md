@@ -14,22 +14,23 @@
 ## ✨ Key Features
 - 🚀 **Lightning Fast LLM**: Powered by **Groq** (`llama-3.1-8b-instant`) for instantaneous, deterministic, and grounded responses.
 - 🧠 **Free Local Embeddings**: Utilizes **HuggingFace** (`Xenova/all-MiniLM-L6-v2`) to generate local embeddings at zero cost.
-- 🗄️ **Advanced Vector Storage**: Integrates with **Qdrant** (Cloud/Docker) for high-performance semantic retrieval.
+- 🗄️ **Advanced Vector Storage**: Integrates with **Pinecone** for high-performance semantic retrieval and namespace isolation.
+- ✂️ **Intelligent Chunking**: Implements `RecursiveCharacterTextSplitter` to smartly chunk documents (1000 characters with 200 overlap), ensuring semantic meaning is preserved without cutting off sentences mid-thought.
 - 🎨 **Premium User Interface**: Features a highly aesthetic, responsive, and minimalist frontend inspired perfectly by Google NotebookLM (built with pure HTML/CSS/VanillaJS).
-- 🔐 **Strict Grounding**: System prompts explicitly force the AI to answer *only* from the provided context, eliminating hallucinations.
+- 🔐 **Strict Grounding**: System prompts explicitly force the AI to answer *only* from the provided context, eliminating hallucinations while remaining conversational for standard greetings.
 
 ## 🛠️ Technology Stack
 - **Backend:** Node.js, Express.js
 - **Frontend:** Vanilla HTML, CSS (Tailwind), JavaScript
-- **RAG Pipeline:** LangChain.js (`@langchain/community`, `@langchain/groq`, `@langchain/qdrant`)
-- **Document Parsing:** `pdf-parse`
+- **RAG Pipeline:** LangChain.js (`@langchain/community`, `@langchain/groq`, `@langchain/pinecone`)
+- **Document Parsing:** `pdf-parse` & `pdfjs-dist` with OCR API fallback for scanned documents
 
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
 - Node.js (v18+)
 - A Groq API Key (Free)
-- A Qdrant Cloud URL / API Key (Free)
+- A Pinecone API Key & Index Name (Free)
 
 ### 2. Installation
 Clone the repository and install the dependencies (use `--legacy-peer-deps` due to LangChain peer requirements):
@@ -43,8 +44,8 @@ npm install --legacy-peer-deps
 Rename `.env.example` to `.env` and fill in your keys:
 ```env
 GROQ_API_KEY=your_groq_api_key_here
-QDRANT_URL=https://your-cluster-url.qdrant.io
-QDRANT_API_KEY=your_qdrant_api_key_here
+PINECONE_API_KEY=your_pinecone_api_key_here
+PINECONE_INDEX=askmydoc
 PORT=3000
 ```
 
@@ -53,7 +54,7 @@ Start the Express server:
 ```bash
 node server.js
 ```
-Navigate to `http://localhost:3000` in your browser. Upload a PDF, wait for the ingestion process, and start asking questions!
+Navigate to `http://localhost:3000` in your browser. Upload one or multiple PDFs, wait for the ingestion process, and start asking questions! The AI will automatically search across **all** documents added to the sidebar.
 
 ## 📦 Deployment
 This project is perfectly structured for immediate deployment on PaaS providers like **Render.com** or **Railway**. Simply connect the GitHub repository, set your Build Command to `npm install --legacy-peer-deps`, set your Start Command to `node server.js`, and add your `.env` variables in the dashboard!

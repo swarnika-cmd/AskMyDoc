@@ -6,9 +6,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export async function askQuestion(query, collectionName) {
+export async function askQuestion(query, namespaces) {
     try {
-        console.log(`Searching for context to answer: "${query}"`);
+        console.log(`Searching for context to answer: "${query}" across ${namespaces.length} documents`);
 
         const pineconeApiKey = process.env.PINECONE_API_KEY;
         const pineconeIndex = process.env.PINECONE_INDEX;
@@ -29,14 +29,23 @@ export async function askQuestion(query, collectionName) {
         const pinecone = new Pinecone({ apiKey: pineconeApiKey });
         const index = pinecone.index(pineconeIndex);
 
-        const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-            pineconeIndex: index,
-            namespace: collectionName,
-        });
+        // 3. Search across all provided namespaces
+        let allChunksWithScore = [];
+        for (const ns of namespaces) {
+            const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+                pineconeIndex: index,
+                namespace: ns,
+            });
+            // Fetch top 3 from each namespace WITH SCORE
+            const chunks = await vectorStore.similaritySearchWithScore(query, 3);
+            allChunksWithScore.push(...chunks);
+        }
 
-        // 3. Set up the Retriever to fetch the top 3 most relevant chunks
-        const retriever = vectorStore.asRetriever({ k: 3 });
-        const searchedChunks = await retriever.invoke(query);
+        // Sort all chunks by their similarity score descending (highest score first)
+        allChunksWithScore.sort((a, b) => b[1] - a[1]);
+        
+        // Take the absolute top 3 most relevant chunks across all documents
+        const topChunks = allChunksWithScore.slice(0, 3).map(c => c[0]);
 
         // 4. Initialize Groq LLM
         const model = new ChatGroq({
@@ -46,14 +55,20 @@ export async function askQuestion(query, collectionName) {
         });
 
         // 5. Construct the strictly grounded System Prompt
-        const systemPrompt = `You are an AI Assistant that resolves user queries based ONLY on the provided context.
+        const contextText = topChunks
+            .map((chunk, i) => `[Source ${i + 1} - ${chunk.metadata.source || 'Document'}]:\n${chunk.pageContent}`)
+            .join('\n\n');
 
-        Rule 1: Only answer based on the available context from the file.
-        Rule 2: If the answer is not contained in the context, politely state that you do not know. Do not hallucinate.
-        Rule 3: Base your answer purely on the JSON context provided below.
+        const systemPrompt = `You are a helpful AI Assistant.
 
-        Context:
-        ${JSON.stringify(searchedChunks)}
+Rules:
+1. If the user asks a conversational question (e.g., greetings, asking how you are, thanking you), respond politely and naturally without complaining about missing document context.
+2. For all other questions, answer based ONLY on the provided document context below. Do not use prior knowledge.
+3. If the answer to a document-related question is not found in the context, say "I don't have enough information in the uploaded document to answer that."
+4. Be clear, concise, and helpful.
+
+Document Context:
+${contextText}
         `;
 
         // 6. Generate the Response
@@ -64,7 +79,7 @@ export async function askQuestion(query, collectionName) {
 
         return {
             answer: response.content,
-            sources: searchedChunks
+            sources: topChunks
         };
     } catch (error) {
         console.error("Error during retrieval:", error);

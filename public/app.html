@@ -136,8 +136,8 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
     <span class="nav-badge">Powered by Groq &amp; Gemini</span>
     <button class="nav-btn" onclick="clearChat()">New chat</button>
     <label class="nav-btn primary" style="cursor:pointer">
-      Upload PDF
-      <input type="file" id="nav-upload" accept=".pdf" onchange="handleUpload(this.files[0])"/>
+      Upload Document
+      <input type="file" id="nav-upload" accept=".pdf,.txt" onchange="handleUpload(this.files[0])"/>
     </label>
   </div>
 </nav>
@@ -156,7 +156,7 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
       <label class="upload-btn">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="1" x2="8" y2="11"/><polyline points="4 5 8 1 12 5"/><path d="M2 13h12"/></svg>
         Add document
-        <input type="file" accept=".pdf" onchange="handleUpload(this.files[0])"/>
+        <input type="file" accept=".pdf,.txt" onchange="handleUpload(this.files[0])"/>
       </label>
     </div>
  
@@ -172,7 +172,7 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         </div>
         <div class="empty-title">Welcome to your workspace</div>
-        <div class="empty-sub">Upload a PDF source on the left to begin. I'll read it and answer your questions with citations.</div>
+        <div class="empty-sub">Upload a document source on the left to begin. I'll read it and answer your questions with citations.</div>
         <div class="suggestion-chips" id="chips">
           <button class="chip" onclick="sendChip('Summarize this document')">Summarize this document</button>
           <button class="chip" onclick="sendChip('What are the key findings?')">What are the key findings?</button>
@@ -197,77 +197,101 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
  
 <div class="drop-overlay" id="drop-overlay">
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b5861a" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
-  <p>Drop your PDF to upload</p>
+  <p>Drop your document to upload</p>
 </div>
  
 <div class="toast" id="toast"></div>
  
 <script>
-let currentDocName = null;
+// --- State ---
+let documents = {};    // { docId: { name, namespace, status } }
+let activeDocId = null; // currently selected document
 let messages = [];
 let isLoading = false;
- 
+
 const chatArea = document.getElementById('chat-area');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const emptyState = document.getElementById('empty-state');
 const docsContainer = document.getElementById('docs-container');
- 
+
 chatInput.addEventListener('input', () => {
   sendBtn.disabled = chatInput.value.trim() === '' || isLoading;
 });
- 
+
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
- 
+
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (!sendBtn.disabled) sendMessage();
   }
 }
- 
+
 function showToast(msg, duration = 3000) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), duration);
 }
- 
+
+// Generate a unique Pinecone namespace per document
+function makeNamespace(fileName) {
+  const clean = fileName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 40);
+  return `doc_${clean}_${Date.now()}`;
+}
+
+// --- Upload ---
 async function handleUpload(file) {
   if (!file) return;
   const docId = 'doc-' + Date.now();
+  const namespace = makeNamespace(file.name);
+
+  // Track this document
+  documents[docId] = { name: file.name, namespace, status: 'pending' };
   addDocCard(docId, file.name, 'pending');
- 
+
   const formData = new FormData();
   formData.append('document', file);
-  formData.append('collectionName', 'UserUploads');
- 
+  formData.append('collectionName', namespace);
+
   try {
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
     const data = await res.json();
     if (res.ok) {
+      documents[docId].status = 'ready';
       updateDocStatus(docId, 'ready');
-      currentDocName = file.name;
+      setActiveDoc(docId);
       addAIMessage(`Source saved. I've read <strong>${file.name}</strong> and am ready for your questions.`);
-      emptyState && emptyState.remove();
+      if (emptyState?.parentNode) emptyState.remove();
       showToast('Document ready — start asking questions');
     } else {
+      documents[docId].status = 'error';
       updateDocStatus(docId, 'error');
       showToast('Upload failed: ' + (data.error || 'Unknown error'));
     }
   } catch (err) {
+    documents[docId].status = 'error';
     updateDocStatus(docId, 'error');
     showToast('Upload failed. Is the server running?');
   }
 }
- 
+
+// --- Doc Cards ---
 function addDocCard(id, name, status) {
+  // Deactivate all other cards
+  docsContainer.querySelectorAll('.doc-card').forEach(c => c.classList.remove('active'));
+
   const card = document.createElement('div');
   card.className = 'doc-card active';
   card.id = id;
+  card.onclick = (e) => {
+    if (e.target.closest('.doc-remove')) return;
+    if (documents[id]?.status === 'ready') setActiveDoc(id);
+  };
   card.innerHTML = `
     <div class="doc-icon pdf">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -280,7 +304,13 @@ function addDocCard(id, name, status) {
   `;
   docsContainer.prepend(card);
 }
- 
+
+function setActiveDoc(id) {
+  activeDocId = id;
+  docsContainer.querySelectorAll('.doc-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+}
+
 function updateDocStatus(id, status) {
   const el = document.getElementById(id + '-status');
   if (!el) return;
@@ -293,11 +323,42 @@ function updateDocStatus(id, status) {
     el.innerHTML = '<span class="dot" style="background:#c0392b"></span> Upload failed';
   }
 }
- 
-function removeDoc(id) {
-  document.getElementById(id)?.remove();
+
+// --- Delete (backend + UI) ---
+async function removeDoc(id) {
+  const doc = documents[id];
+  const cardEl = document.getElementById(id);
+
+  // Remove from UI immediately
+  cardEl?.remove();
+
+  // If it had a namespace, delete from Pinecone
+  if (doc?.namespace && doc.status === 'ready') {
+    try {
+      await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ namespace: doc.namespace })
+      });
+      showToast(`Deleted "${doc.name}" from vector store`);
+    } catch (e) {
+      console.error('Delete failed:', e);
+    }
+  }
+
+  delete documents[id];
+
+  // If we deleted the active doc, switch to another
+  if (activeDocId === id) {
+    activeDocId = null;
+    const remaining = Object.keys(documents).filter(k => documents[k].status === 'ready');
+    if (remaining.length > 0) {
+      setActiveDoc(remaining[0]);
+    }
+  }
 }
- 
+
+// --- Messages ---
 function addAIMessage(html, showActions = false) {
   const row = document.createElement('div');
   row.className = 'msg-row ai';
@@ -317,7 +378,7 @@ function addAIMessage(html, showActions = false) {
   chatArea.scrollTop = chatArea.scrollHeight;
   return row;
 }
- 
+
 function addUserMessage(text) {
   const row = document.createElement('div');
   row.className = 'msg-row user';
@@ -328,7 +389,7 @@ function addUserMessage(text) {
   chatArea.appendChild(row);
   chatArea.scrollTop = chatArea.scrollHeight;
 }
- 
+
 function showTyping() {
   const row = document.createElement('div');
   row.className = 'msg-row ai';
@@ -345,15 +406,15 @@ function showTyping() {
   chatArea.appendChild(row);
   chatArea.scrollTop = chatArea.scrollHeight;
 }
- 
+
 function removeTyping() {
   document.getElementById('typing-row')?.remove();
 }
- 
+
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
- 
+
 function copyLast() {
   const bubbles = document.querySelectorAll('.msg-bubble.ai');
   if (bubbles.length) {
@@ -361,37 +422,46 @@ function copyLast() {
     showToast('Copied to clipboard');
   }
 }
- 
+
 function sendChip(text) {
   chatInput.value = text;
   sendMessage();
 }
- 
+
+// --- Chat ---
 async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || isLoading) return;
- 
+
+  // Check if there are any ready documents to query
+  const readyDocs = Object.values(documents).filter(d => d.status === 'ready');
+  if (readyDocs.length === 0) {
+    showToast('Please upload a document first');
+    return;
+  }
+  const namespaces = readyDocs.map(d => d.namespace);
+
   if (emptyState?.parentNode) emptyState.remove();
- 
+
   chatInput.value = '';
   chatInput.style.height = 'auto';
   sendBtn.disabled = true;
   isLoading = true;
- 
+
   addUserMessage(text);
   messages.push({ role: 'user', content: text });
- 
+
   showTyping();
- 
+
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: text, collectionName: 'UserUploads' })
+      body: JSON.stringify({ query: text, namespaces: namespaces })
     });
     const data = await res.json();
     removeTyping();
- 
+
     const reply = data.reply || data.answer || data.response || 'No response received.';
     messages.push({ role: 'assistant', content: reply });
     addAIMessage(escHtml(reply).replace(/\[p\.(\d+)\]/g, '<span class="citation-badge">p.$1</span>'), true);
@@ -399,11 +469,11 @@ async function sendMessage() {
     removeTyping();
     addAIMessage('Something went wrong. Please check the server connection.');
   }
- 
+
   isLoading = false;
   sendBtn.disabled = chatInput.value.trim() === '';
 }
- 
+
 function clearChat() {
   messages = [];
   chatArea.innerHTML = '';
@@ -415,11 +485,11 @@ function clearChat() {
       <svg viewBox="0 0 24 24" fill="none" stroke="#6b6760" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     </div>
     <div class="empty-title">Welcome to your workspace</div>
-    <div class="empty-sub">Upload a PDF source on the left to begin.</div>
+    <div class="empty-sub">Upload a document source on the left to begin.</div>
   `;
   chatArea.appendChild(es);
 }
- 
+
 // Drag and drop
 document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); });
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.getElementById('drop-overlay').classList.remove('active'); });
@@ -427,8 +497,8 @@ document.addEventListener('drop', e => {
   e.preventDefault();
   document.getElementById('drop-overlay').classList.remove('active');
   const file = e.dataTransfer.files[0];
-  if (file?.type === 'application/pdf') handleUpload(file);
-  else showToast('Please drop a PDF file');
+  if (file?.type === 'application/pdf' || file?.type === 'text/plain' || file?.name.endsWith('.txt')) handleUpload(file);
+  else showToast('Please drop a PDF or Text file');
 });
 </script>
 </body>
