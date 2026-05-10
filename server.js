@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { ingestDocument } from './ingest.js';
 import { askQuestion } from './retrieve.js';
 import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -15,17 +16,32 @@ app.use(express.json());
 // Serve frontend UI
 app.use(express.static('public'));
 
+// Create uploads directory if it doesn't exist
+const uploadsDir = 'uploads';
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Set up multer for file uploads
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: uploadsDir });
 
 app.post('/api/upload', upload.single('document'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
+
+        // Validate Qdrant configuration
+        const qdrantUrl = process.env.QDRANT_URL;
+        if (!qdrantUrl) {
+            fs.unlinkSync(req.file.path);
+            return res.status(500).json({ error: 'Qdrant is not configured. Please set QDRANT_URL environment variable.' });
+        }
         
         const filePath = req.file.path;
         const collectionName = req.body.collectionName || 'DefaultCollection';
+        
+        console.log(`Uploading file: ${req.file.originalname}, Collection: ${collectionName}`);
         
         const result = await ingestDocument(filePath, collectionName);
         
@@ -34,6 +50,11 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
         
         res.json({ message: 'File ingested successfully', result });
     } catch (error) {
+        console.error('Upload error:', error.message);
+        // Clean up file on error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
         res.status(500).json({ error: error.message });
     }
 });
