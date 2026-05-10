@@ -57,13 +57,15 @@ export async function ingestDocument(filePath, collectionName) {
             const vectorStore = await QdrantVectorStore.fromDocuments(chunks, embeddings, {
                 url: qdrantUrl,
                 apiKey: qdrantApiKey,
-                collectionName: collectionName
+                collectionName: collectionName,
+                checkCompatibility: false // Skip version check for cloud
             });
             
             console.log(`Successfully ingested ${chunks.length} chunks into Qdrant collection: ${collectionName}`);
             return { success: true, chunksCount: chunks.length };
         } catch (qdrantError) {
             console.error("Qdrant connection/storage error:", qdrantError.message);
+            console.error("Full error:", qdrantError);
             throw new Error(`Qdrant error: ${qdrantError.message}`);
         }
         

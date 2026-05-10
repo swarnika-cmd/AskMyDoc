@@ -26,7 +26,8 @@ export async function askQuestion(query, collectionName) {
         const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
             url: qdrantUrl,
             apiKey: qdrantApiKey,
-            collectionName: collectionName
+            collectionName: collectionName,
+            checkCompatibility: false // Skip version check for cloud
         });
 
         // 3. Set up the Retriever to fetch the top 3 most relevant chunks
