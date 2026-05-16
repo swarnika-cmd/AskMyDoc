@@ -100,14 +100,14 @@ app.post('/api/upload', upload.single('document'), async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { query, collectionName, namespaces } = req.body;
+        const { query, collectionName, namespaces, history } = req.body;
 
         if (!query) {
             return res.status(400).json({ error: 'Query is required' });
         }
 
         const targetNamespaces = namespaces || (collectionName ? [collectionName] : ['DefaultCollection']);
-        const result = await askQuestion(query, targetNamespaces);
+        const result = await askQuestion(query, targetNamespaces, history || []);
 
         res.json(result);
     } catch (error) {

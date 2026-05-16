@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export async function askQuestion(query, namespaces) {
+export async function askQuestion(query, namespaces, history = []) {
     try {
         console.log(`Searching for context to answer: "${query}" across ${namespaces.length} documents`);
 
@@ -20,6 +20,29 @@ export async function askQuestion(query, namespaces) {
             throw new Error("PINECONE_INDEX environment variable is not set.");
         }
 
+        // Initialize Groq LLM early for query reformulation
+        const model = new ChatGroq({
+            apiKey: process.env.GROQ_API_KEY,
+            model: "llama-3.1-8b-instant",
+            temperature: 0,
+        });
+
+        // Reformulate query if there's history
+        let standaloneQuery = query;
+        if (history && history.length > 0) {
+            const reformulatePrompt = `Given the following chat history and a follow up question, rephrase the follow up question to be a standalone question.
+Chat History:
+${history.map(m => `${m.role}: ${m.content}`).join('\n')}
+Follow Up Input: ${query}
+Standalone question:`;
+            
+            const reformulateResponse = await model.invoke([
+                { role: "user", content: reformulatePrompt }
+            ]);
+            standaloneQuery = reformulateResponse.content.trim();
+            console.log(`Reformulated query: "${standaloneQuery}"`);
+        }
+
         // 1. Re-initialize the same embeddings model used for ingestion
         const embeddings = new HuggingFaceTransformersEmbeddings({
             modelName: "Xenova/all-MiniLM-L6-v2",
@@ -29,7 +52,7 @@ export async function askQuestion(query, namespaces) {
         const pinecone = new Pinecone({ apiKey: pineconeApiKey });
         const index = pinecone.index(pineconeIndex);
 
-        // 3. Search across all provided namespaces
+        // 3. Search across all provided namespaces using the standalone query
         let allChunksWithScore = [];
         for (const ns of namespaces) {
             const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
@@ -37,7 +60,7 @@ export async function askQuestion(query, namespaces) {
                 namespace: ns,
             });
             // Fetch top 3 from each namespace WITH SCORE
-            const chunks = await vectorStore.similaritySearchWithScore(query, 3);
+            const chunks = await vectorStore.similaritySearchWithScore(standaloneQuery, 3);
             allChunksWithScore.push(...chunks);
         }
 
@@ -46,13 +69,6 @@ export async function askQuestion(query, namespaces) {
         
         // Take the absolute top 3 most relevant chunks across all documents
         const topChunks = allChunksWithScore.slice(0, 3).map(c => c[0]);
-
-        // 4. Initialize Groq LLM
-        const model = new ChatGroq({
-            apiKey: process.env.GROQ_API_KEY,
-            model: "llama-3.1-8b-instant",
-            temperature: 0,
-        });
 
         // 5. Construct the strictly grounded System Prompt
         const contextText = topChunks
@@ -71,11 +87,14 @@ Document Context:
 ${contextText}
         `;
 
-        // 6. Generate the Response
-        const response = await model.invoke([
+        // 6. Generate the Response with History
+        const finalMessages = [
             { role: "system", content: systemPrompt },
+            ...history.map(m => ({ role: m.role, content: m.content })),
             { role: "user", content: query }
-        ]);
+        ];
+
+        const response = await model.invoke(finalMessages);
 
         return {
             answer: response.content,
