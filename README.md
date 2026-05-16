@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="NotebookLM Logo" width="80" height="80">
-  <h1 align="center">AskMyDoc: NotebookLM RAG Clone</h1>
+  <h1 align="center">AskMyDoc: NotebookLM RAG</h1>
   <p align="center">
     <strong>A production-ready RAG application that lets you upload and chat with your documents.</strong>
   </p>
