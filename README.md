@@ -4,6 +4,13 @@
   <p align="center">
     <strong>A production-ready RAG application that lets you upload and chat with your documents.</strong>
   </p>
+  
+  <br />
+  
+  <a href="https://askmydoc-ljfv.onrender.com" target="_blank">
+    <img src="https://img.shields.io/badge/✨_Live_Demo-Experience_The_App_Now!-b5861a?style=for-the-badge&logo=render&logoColor=white" alt="Live Demo" />
+  </a>
+  <p><em>Turn any static PDF into an intelligent conversation in seconds. No setup required.</em></p>
 </div>
 
 ---
@@ -15,9 +22,10 @@
 - 🚀 **Lightning Fast LLM**: Powered by **Groq** (`llama-3.1-8b-instant`) for instantaneous, deterministic, and grounded responses.
 - 🧠 **Free Local Embeddings**: Utilizes **HuggingFace** (`Xenova/all-MiniLM-L6-v2`) to generate local embeddings at zero cost.
 - 🗄️ **Advanced Vector Storage**: Integrates with **Pinecone** for high-performance semantic retrieval and namespace isolation.
-- ✂️ **Intelligent Chunking**: Implements `RecursiveCharacterTextSplitter` to smartly chunk documents (1000 characters with 200 overlap), ensuring semantic meaning is preserved without cutting off sentences mid-thought.
+- 🏗️ **Parent Document Retrieval**: Implements a dual-chunking strategy (3000-char parent context / 400-char child vectors) to maximize retrieval precision while preserving deep context for the LLM.
+- 💬 **Conversational Memory**: Features active chat history routing. The AI intelligently reformulates follow-up questions into standalone queries before searching the vector database, allowing for natural, continuous conversations.
 - 🎨 **Premium User Interface**: Features a highly aesthetic, responsive, and minimalist frontend inspired perfectly by Google NotebookLM (built with pure HTML/CSS/VanillaJS).
-- 🔐 **Strict Grounding**: System prompts explicitly force the AI to answer *only* from the provided context, eliminating hallucinations while remaining conversational for standard greetings.
+- 🔐 **Strict Grounding**: System prompts explicitly force the AI to answer *only* from the provided context, eliminating hallucinations.
 
 ## 🛠️ Technology Stack
 - **Backend:** Node.js, Express.js
