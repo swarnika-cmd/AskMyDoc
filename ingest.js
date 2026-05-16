@@ -64,13 +64,31 @@ export async function ingestDocument(filePath, collectionName, originalFileName 
             throw new Error(`Failed to parse file: ${pdfError.message}`);
         }
 
-        // 2. Chunking: RecursiveCharacterTextSplitter
-        const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 1000,
-            chunkOverlap: 200,
+        // 2. Chunking: Parent Document Strategy
+        const parentSplitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 3000,
+            chunkOverlap: 300,
         });
-        const chunks = await splitter.splitDocuments(docs);
-        console.log(`Split document into ${chunks.length} chunks.`);
+        const childSplitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 400,
+            chunkOverlap: 100,
+        });
+
+        const parentDocs = await parentSplitter.splitDocuments(docs);
+        const childChunks = [];
+
+        for (const parent of parentDocs) {
+            const parentId = `parent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            parent.metadata.parentId = parentId;
+
+            const children = await childSplitter.splitDocuments([parent]);
+            for (const child of children) {
+                child.metadata.parentId = parentId;
+                child.metadata.parentContent = parent.pageContent;
+                childChunks.push(child);
+            }
+        }
+        console.log(`Split document into ${parentDocs.length} parent chunks and ${childChunks.length} child chunks.`);
 
         // 3. Embedding: Initialize HuggingFace Local Embeddings
         console.log("Initializing embeddings model...");
@@ -105,13 +123,13 @@ export async function ingestDocument(filePath, collectionName, originalFileName 
             const pinecone = new Pinecone({ apiKey: pineconeApiKey });
             const index = pinecone.index(pineconeIndex);
 
-            const vectorStore = await PineconeStore.fromDocuments(chunks, embeddings, {
+            const vectorStore = await PineconeStore.fromDocuments(childChunks, embeddings, {
                 pineconeIndex: index,
                 namespace: collectionName,
             });
 
-            console.log(`Successfully ingested ${chunks.length} chunks into Pinecone index: ${pineconeIndex}, namespace: ${collectionName}`);
-            return { success: true, chunksCount: chunks.length };
+            console.log(`Successfully ingested ${childChunks.length} chunks into Pinecone index: ${pineconeIndex}, namespace: ${collectionName}`);
+            return { success: true, chunksCount: childChunks.length };
         } catch (pineconeError) {
             console.error("Pinecone connection/storage error:", pineconeError.message);
             console.error("Full error:", pineconeError);

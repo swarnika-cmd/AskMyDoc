@@ -59,20 +59,30 @@ Standalone question:`;
                 pineconeIndex: index,
                 namespace: ns,
             });
-            // Fetch top 3 from each namespace WITH SCORE
-            const chunks = await vectorStore.similaritySearchWithScore(standaloneQuery, 3);
+            // Fetch top 5 from each namespace WITH SCORE
+            const chunks = await vectorStore.similaritySearchWithScore(standaloneQuery, 5);
             allChunksWithScore.push(...chunks);
         }
 
         // Sort all chunks by their similarity score descending (highest score first)
         allChunksWithScore.sort((a, b) => b[1] - a[1]);
         
-        // Take the absolute top 3 most relevant chunks across all documents
-        const topChunks = allChunksWithScore.slice(0, 3).map(c => c[0]);
+        // Take the absolute top 5 most relevant chunks across all documents
+        const topChildChunks = allChunksWithScore.slice(0, 5).map(c => c[0]);
+
+        // Deduplicate parent chunks
+        const uniqueParents = new Map();
+        for (const chunk of topChildChunks) {
+            const parentId = chunk.metadata.parentId || chunk.metadata.source || Math.random().toString();
+            if (!uniqueParents.has(parentId)) {
+                uniqueParents.set(parentId, chunk);
+            }
+        }
+        const topChunks = Array.from(uniqueParents.values());
 
         // 5. Construct the strictly grounded System Prompt
         const contextText = topChunks
-            .map((chunk, i) => `[Source ${i + 1} - ${chunk.metadata.source || 'Document'}]:\n${chunk.pageContent}`)
+            .map((chunk, i) => `[Source ${i + 1} - ${chunk.metadata.source || 'Document'}]:\n${chunk.metadata.parentContent || chunk.pageContent}`)
             .join('\n\n');
 
         const systemPrompt = `You are a helpful AI Assistant.
