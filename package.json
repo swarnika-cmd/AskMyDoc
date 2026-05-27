@@ -15,6 +15,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.18",
     "@huggingface/transformers": "^4.2.0",
     "@langchain/community": "^1.1.28",
     "@langchain/google-genai": "^2.1.30",
