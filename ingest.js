@@ -1,6 +1,6 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/huggingface_transformers";
+import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { PineconeStore } from "@langchain/pinecone";
 import { Document } from "@langchain/core/documents";
@@ -63,7 +63,7 @@ export async function ingestDocument(filePath, collectionName, originalFileName 
             console.error("File loading error:", pdfError.message);
             throw new Error(`Failed to parse file: ${pdfError.message}`);
         }
-
+ 
         // 2. Chunking: Parent Document Strategy
         const parentSplitter = new RecursiveCharacterTextSplitter({
             chunkSize: 3000,
@@ -73,14 +73,14 @@ export async function ingestDocument(filePath, collectionName, originalFileName 
             chunkSize: 400,
             chunkOverlap: 100,
         });
-
+ 
         const parentDocs = await parentSplitter.splitDocuments(docs);
         const childChunks = [];
-
+ 
         for (const parent of parentDocs) {
             const parentId = `parent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             parent.metadata.parentId = parentId;
-
+ 
             const children = await childSplitter.splitDocuments([parent]);
             for (const child of children) {
                 child.metadata.parentId = parentId;
@@ -89,13 +89,18 @@ export async function ingestDocument(filePath, collectionName, originalFileName 
             }
         }
         console.log(`Split document into ${parentDocs.length} parent chunks and ${childChunks.length} child chunks.`);
-
-        // 3. Embedding: Initialize HuggingFace Local Embeddings
-        console.log("Initializing embeddings model...");
+ 
+        // 3. Embedding: Initialize HuggingFace Serverless Inference Embeddings
+        console.log("Initializing HuggingFace Serverless embeddings...");
         let embeddings;
         try {
-            embeddings = new HuggingFaceTransformersEmbeddings({
-                modelName: "Xenova/all-MiniLM-L6-v2",
+            const hfToken = process.env.HF_TOKEN;
+            if (!hfToken) {
+                throw new Error("HF_TOKEN environment variable is not set.");
+            }
+            embeddings = new HuggingFaceInferenceEmbeddings({
+                apiKey: hfToken,
+                model: "sentence-transformers/all-MiniLM-L6-v2",
             });
             await embeddings.embedQuery("test");
             console.log("Embeddings model ready");

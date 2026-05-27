@@ -6,6 +6,7 @@ import { ingestDocument } from './ingest.js';
 import { askQuestion } from './retrieve.js';
 import { Pinecone } from '@pinecone-database/pinecone';
 import fs from 'fs';
+import os from 'os';
 
 dotenv.config();
 
@@ -22,8 +23,8 @@ app.use((req, res, next) => {
 
 app.use(express.static('public'));
 
-const uploadsDir = 'uploads';
-if (!fs.existsSync(uploadsDir)) {
+const uploadsDir = process.env.VERCEL ? os.tmpdir() : 'uploads';
+if (!process.env.VERCEL && !fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 

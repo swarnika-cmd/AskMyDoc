@@ -1,5 +1,5 @@
 import { ChatGroq } from "@langchain/groq";
-import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/huggingface_transformers";
+import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { PineconeStore } from "@langchain/pinecone";
 import dotenv from "dotenv";
@@ -31,10 +31,10 @@ export async function askQuestion(query, namespaces, history = []) {
         let standaloneQuery = query;
         if (history && history.length > 0) {
             const reformulatePrompt = `Given the following chat history and a follow up question, rephrase the follow up question to be a standalone question.
-Chat History:
-${history.map(m => `${m.role}: ${m.content}`).join('\n')}
-Follow Up Input: ${query}
-Standalone question:`;
+            Chat History:
+            ${history.map(m => `${m.role}: ${m.content}`).join('\n')}
+            Follow Up Input: ${query}
+            Standalone question:`;
             
             const reformulateResponse = await model.invoke([
                 { role: "user", content: reformulatePrompt }
@@ -44,8 +44,13 @@ Standalone question:`;
         }
 
         // 1. Re-initialize the same embeddings model used for ingestion
-        const embeddings = new HuggingFaceTransformersEmbeddings({
-            modelName: "Xenova/all-MiniLM-L6-v2",
+        const hfToken = process.env.HF_TOKEN;
+        if (!hfToken) {
+            throw new Error("HF_TOKEN environment variable is not set.");
+        }
+        const embeddings = new HuggingFaceInferenceEmbeddings({
+            apiKey: hfToken,
+            model: "sentence-transformers/all-MiniLM-L6-v2",
         });
 
         // 2. Connect to the existing Pinecone Vector Store
