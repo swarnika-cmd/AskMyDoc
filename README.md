@@ -68,4 +68,4 @@ Navigate to `http://localhost:3000` in your browser. Upload one or multiple PDFs
 This project is perfectly structured for immediate deployment on PaaS providers like **Render.com** or **Railway**. Simply connect the GitHub repository, set your Build Command to `npm install --legacy-peer-deps`, set your Start Command to `node server.js`, and add your `.env` variables in the dashboard!
 
 ---
-*Built for Assignment 03 — Google NotebookLM RAG*
+
