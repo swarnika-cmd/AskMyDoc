@@ -24,6 +24,9 @@
 - 🗄️ **Advanced Vector Storage**: Integrates with **Pinecone** for high-performance semantic retrieval and namespace isolation.
 - 🏗️ **Parent Document Retrieval**: Implements a dual-chunking strategy (3000-char parent context / 400-char child vectors) to maximize retrieval precision while preserving deep context for the LLM.
 - 💬 **Conversational Memory**: Features active chat history routing. The AI intelligently reformulates follow-up questions into standalone queries before searching the vector database, allowing for natural, continuous conversations.
+- 🎯 **Answer Confidence Scoring**: Calculates similarity scores from Pinecone and displays dynamic grounding confidence badges (**HIGH CONFIDENCE**, **LOW CONFIDENCE**, or **NOT FOUND IN DOCUMENT**) in the UI.
+- 📁 **Preloaded Demo Mode**: Instantly load and test-query the preloaded "RBI Integrated Ombudsman Scheme 2021" policy document without uploading.
+- 🛡️ **Safety Guardrails & Limits**: Enforces a strict 3-document upload limit to control resource consumption and namespace clutter.
 - 🎨 **Premium User Interface**: Features a highly aesthetic, responsive, and minimalist frontend inspired perfectly by Google NotebookLM (built with pure HTML/CSS/VanillaJS).
 - 🔐 **Strict Grounding**: System prompts explicitly force the AI to answer *only* from the provided context, eliminating hallucinations.
 
@@ -66,6 +69,3 @@ Navigate to `http://localhost:3000` in your browser. Upload one or multiple PDFs
 
 ## 📦 Deployment
 This project is perfectly structured for immediate deployment on PaaS providers like **Render.com** or **Railway**. Simply connect the GitHub repository, set your Build Command to `npm install --legacy-peer-deps`, set your Start Command to `node server.js`, and add your `.env` variables in the dashboard!
-
----
-
