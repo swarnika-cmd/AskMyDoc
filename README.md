@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="NotebookLM Logo" width="80" height="80">
   <h1 align="center">AskMyDoc: NotebookLM RAG</h1>
   <p align="center">
     <strong>A production-ready RAG application that lets you upload and chat with your documents.</strong>
@@ -11,7 +10,11 @@
     <img src="https://img.shields.io/badge/✨_Live_Demo-Experience_The_App_Now!-b5861a?style=for-the-badge&logo=render&logoColor=white" alt="Live Demo" />
   </a>
   <p><em>Turn any static PDF into an intelligent conversation in seconds. No setup required.</em></p>
+
+  <br />
+  <img src="public/demo_screenshot.png" alt="AskMyDoc UI Screenshot" width="100%" style="border-radius: 12px; border: 1px solid #e2ddd4; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
 </div>
+
 
 ---
 
