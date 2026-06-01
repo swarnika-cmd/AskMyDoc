@@ -23,6 +23,11 @@ app.use((req, res, next) => {
 
 app.use(express.static('public'));
 
+// API Health Check
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
+});
+
 const uploadsDir = process.env.VERCEL ? os.tmpdir() : 'uploads';
 if (!process.env.VERCEL && !fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
