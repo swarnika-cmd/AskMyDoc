@@ -121,6 +121,41 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
 /* Toast */
 .toast{position:fixed;bottom:2rem;right:2rem;background:var(--ink);color:var(--paper);font-size:13px;padding:10px 18px;border-radius:10px;z-index:1000;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
+
+/* Confidence Badges */
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.confidence-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge-high {
+  background: var(--green-light);
+  color: var(--green);
+  border: 1px solid rgba(26, 92, 58, 0.15);
+}
+.badge-low {
+  background: var(--gold-light);
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+}
+.badge-not-found {
+  background: var(--red-light);
+  color: var(--red);
+  border: 1px solid rgba(192, 57, 43, 0.15);
+}
 </style>
 </head>
 <body>
@@ -173,6 +208,10 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--
         </div>
         <div class="empty-title">Welcome to your workspace</div>
         <div class="empty-sub">Upload a document source on the left to begin. I'll read it and answer your questions with citations.</div>
+        <div style="margin-top: 1rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+          <div style="font-size: 12px; color: var(--muted); font-weight: 500;">Or try with a preloaded compliance document:</div>
+          <button class="nav-btn primary" onclick="loadDemoCompliance()" style="padding: 6px 16px; font-size: 13px; font-weight: 500; border-radius: 8px;">Try with RBI Guidelines</button>
+        </div>
         <div class="suggestion-chips" id="chips">
           <button class="chip" onclick="sendChip('Summarize this document')">Summarize this document</button>
           <button class="chip" onclick="sendChip('What are the key findings?')">What are the key findings?</button>
@@ -247,11 +286,19 @@ function makeNamespace(fileName) {
 // --- Upload ---
 async function handleUpload(file) {
   if (!file) return;
+
+  // Enforce document limit (max 3 documents including the demo doc)
+  const docCount = Object.keys(documents).length;
+  if (docCount >= 3) {
+    showToast('Maximum of 3 documents allowed. Please remove a document to upload a new one.');
+    return;
+  }
+
   const docId = 'doc-' + Date.now();
   const namespace = makeNamespace(file.name);
 
   // Track this document
-  documents[docId] = { name: file.name, namespace, status: 'pending' };
+  documents[docId] = { name: file.name, namespace, status: 'pending', selected: true };
   addDocCard(docId, file.name, 'pending');
 
   const formData = new FormData();
@@ -281,34 +328,58 @@ async function handleUpload(file) {
 }
 
 // --- Doc Cards ---
-function addDocCard(id, name, status) {
-  // Deactivate all other cards
-  docsContainer.querySelectorAll('.doc-card').forEach(c => c.classList.remove('active'));
-
+function addDocCard(id, name, status, isDemo = false) {
   const card = document.createElement('div');
-  card.className = 'doc-card active';
+  card.className = 'doc-card active'; // active class denotes selected
   card.id = id;
+  
   card.onclick = (e) => {
-    if (e.target.closest('.doc-remove')) return;
-    if (documents[id]?.status === 'ready') setActiveDoc(id);
+    if (e.target.closest('.doc-remove') || e.target.closest('.doc-checkbox')) return;
+    toggleDocSelection(id);
   };
+
+  const removeBtn = isDemo 
+    ? '' 
+    : `<button class="doc-remove" onclick="removeDoc('${id}')" title="Remove">×</button>`;
+
   card.innerHTML = `
-    <div class="doc-icon pdf">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <input type="checkbox" class="doc-checkbox" checked id="check-${id}" onclick="event.stopPropagation(); toggleDocSelection('${id}')" style="cursor: pointer; accent-color: var(--gold); width: 14px; height: 14px; margin-right: 6px; flex-shrink: 0;" />
+    <div class="doc-icon pdf" style="margin-right: 4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     </div>
     <div class="doc-meta">
       <div class="doc-name" title="${name}">${name}</div>
-      <div class="doc-status pending" id="${id}-status"><span class="dot"></span> Processing…</div>
+      <div class="doc-status ${status === 'ready' ? '' : 'pending'}" id="${id}-status">
+        <span class="dot"></span> ${status === 'ready' ? 'Ready for chat' : 'Processing…'}
+      </div>
     </div>
-    <button class="doc-remove" onclick="removeDoc('${id}')" title="Remove">×</button>
+    ${removeBtn}
   `;
   docsContainer.prepend(card);
 }
 
+function toggleDocSelection(id) {
+  const doc = documents[id];
+  if (!doc || doc.status !== 'ready') return;
+  doc.selected = !doc.selected;
+  
+  const card = document.getElementById(id);
+  const checkbox = document.getElementById('check-' + id);
+  if (doc.selected) {
+    card.classList.add('active');
+    if (checkbox) checkbox.checked = true;
+  } else {
+    card.classList.remove('active');
+    if (checkbox) checkbox.checked = false;
+  }
+}
+
 function setActiveDoc(id) {
-  activeDocId = id;
-  docsContainer.querySelectorAll('.doc-card').forEach(c => c.classList.remove('active'));
-  document.getElementById(id)?.classList.add('active');
+  // Kept for compatibility, checks checkbox and updates selection
+  const doc = documents[id];
+  if (doc && !doc.selected) {
+    toggleDocSelection(id);
+  }
 }
 
 function updateDocStatus(id, status) {
@@ -347,26 +418,29 @@ async function removeDoc(id) {
   }
 
   delete documents[id];
-
-  // If we deleted the active doc, switch to another
-  if (activeDocId === id) {
-    activeDocId = null;
-    const remaining = Object.keys(documents).filter(k => documents[k].status === 'ready');
-    if (remaining.length > 0) {
-      setActiveDoc(remaining[0]);
-    }
-  }
 }
 
 // --- Messages ---
-function addAIMessage(html, showActions = false) {
+function addAIMessage(html, showActions = false, confidence = null) {
+  let badgeHtml = '';
+  if (confidence === 'HIGH') {
+    badgeHtml = `<div class="confidence-badge badge-high"><span class="dot"></span>HIGH CONFIDENCE</div>`;
+  } else if (confidence === 'LOW') {
+    badgeHtml = `<div class="confidence-badge badge-low"><span class="dot"></span>LOW CONFIDENCE</div>`;
+  } else if (confidence === 'NOT_FOUND') {
+    badgeHtml = `<div class="confidence-badge badge-not-found"><span class="dot"></span>NOT FOUND IN DOCUMENT</div>`;
+  }
+
   const row = document.createElement('div');
   row.className = 'msg-row ai';
   row.innerHTML = `
     <div class="msg-avatar ai">AI</div>
     <div>
       <div class="msg-name">NotebookLM</div>
-      <div class="msg-bubble ai">${html}</div>
+      <div class="msg-bubble ai">
+        ${badgeHtml}
+        <div>${html}</div>
+      </div>
       ${showActions ? `<div class="msg-actions">
         <button class="msg-action-btn" onclick="copyLast()">
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="10" height="10" rx="1"/><path d="M2 12V2h10"/></svg> Copy
@@ -433,13 +507,13 @@ async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text || isLoading) return;
 
-  // Check if there are any ready documents to query
-  const readyDocs = Object.values(documents).filter(d => d.status === 'ready');
-  if (readyDocs.length === 0) {
-    showToast('Please upload a document first');
+  // Check if there are any ready and selected documents to query
+  const selectedDocs = Object.values(documents).filter(d => d.status === 'ready' && d.selected);
+  if (selectedDocs.length === 0) {
+    showToast('Please select at least one document to query.');
     return;
   }
-  const namespaces = readyDocs.map(d => d.namespace);
+  const namespaces = selectedDocs.map(d => d.namespace);
 
   if (emptyState?.parentNode) emptyState.remove();
 
@@ -463,8 +537,9 @@ async function sendMessage() {
     removeTyping();
 
     const reply = data.reply || data.answer || data.response || 'No response received.';
+    const confidence = data.confidence;
     messages.push({ role: 'assistant', content: reply });
-    addAIMessage(escHtml(reply).replace(/\[p\.(\d+)\]/g, '<span class="citation-badge">p.$1</span>'), true);
+    addAIMessage(escHtml(reply).replace(/\[p\.(\d+)\]/g, '<span class="citation-badge">p.$1</span>'), true, confidence);
   } catch (err) {
     removeTyping();
     addAIMessage('Something went wrong. Please check the server connection.');
@@ -499,6 +574,45 @@ document.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file?.type === 'application/pdf' || file?.type === 'text/plain' || file?.name.endsWith('.txt')) handleUpload(file);
   else showToast('Please drop a PDF or Text file');
+});
+
+function loadDemoCompliance() {
+  const demoId = 'demo-compliance';
+  if (documents[demoId]) {
+    showToast('RBI Guidelines demo is already loaded.');
+    return;
+  }
+  
+  // Enforce document limit (max 3 documents including the demo doc)
+  const docCount = Object.keys(documents).length;
+  if (docCount >= 3) {
+    showToast('Maximum of 3 documents allowed. Please remove a document to load the demo.');
+    return;
+  }
+
+  // Clean empty state if present
+  const es = document.getElementById('empty-state');
+  if (es) es.remove();
+
+  documents[demoId] = {
+    name: 'RBI Integrated Ombudsman Scheme 2021.pdf',
+    namespace: 'demo-compliance',
+    status: 'ready',
+    selected: true
+  };
+
+  addDocCard(demoId, 'RBI Integrated Ombudsman Scheme 2021.pdf', 'ready', true);
+  
+  addAIMessage(`I've loaded the pre-indexed <strong>RBI Integrated Ombudsman Scheme 2021</strong> guidelines. Ask me any compliance or policy questions about it!`);
+  showToast('RBI Guidelines demo loaded');
+}
+
+// Auto-load demo mode if ?demo=compliance query param is present
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('demo') === 'compliance') {
+    setTimeout(loadDemoCompliance, 300);
+  }
 });
 </script>
 </body>

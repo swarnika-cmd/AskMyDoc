@@ -124,6 +124,11 @@ app.post('/api/delete', async (req, res) => {
             return res.status(400).json({ error: 'Namespace is required' });
         }
 
+        if (namespace === 'demo-compliance') {
+            console.log(`✓ Prevented deletion of preloaded demo-compliance namespace.`);
+            return res.json({ message: 'Demo compliance namespace cannot be deleted.' });
+        }
+
         const pineconeApiKey = process.env.PINECONE_API_KEY;
         const pineconeIndex = process.env.PINECONE_INDEX;
 

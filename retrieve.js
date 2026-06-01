@@ -72,6 +72,10 @@ export async function askQuestion(query, namespaces, history = []) {
         // Sort all chunks by their similarity score descending (highest score first)
         allChunksWithScore.sort((a, b) => b[1] - a[1]);
         
+        // Get the maximum similarity score
+        const maxScore = allChunksWithScore.length > 0 ? (allChunksWithScore[0][1] ?? 0) : 0;
+        console.log(`Maximum similarity score: ${maxScore}`);
+
         // Take the absolute top 5 most relevant chunks across all documents
         const topChildChunks = allChunksWithScore.slice(0, 5).map(c => c[0]);
 
@@ -85,7 +89,7 @@ export async function askQuestion(query, namespaces, history = []) {
         }
         const topChunks = Array.from(uniqueParents.values());
 
-        // 5. Construct the strictly grounded System Prompt
+        // 5. Construct the strictly grounded System Prompt requesting JSON output
         const contextText = topChunks
             .map((chunk, i) => `[Source ${i + 1} - ${chunk.metadata.source || 'Document'}]:\n${chunk.metadata.parentContent || chunk.pageContent}`)
             .join('\n\n');
@@ -93,16 +97,23 @@ export async function askQuestion(query, namespaces, history = []) {
         const systemPrompt = `You are a helpful AI Assistant.
 
 Rules:
-1. If the user asks a conversational question (e.g., greetings, asking how you are, thanking you), respond politely and naturally without complaining about missing document context.
-2. For all other questions, answer based ONLY on the provided document context below. Do not use prior knowledge.
-3. If the answer to a document-related question is not found in the context, say "I don't have enough information in the uploaded document to answer that."
+1. If the user asks a conversational question (e.g., greetings, asking how you are, thanking you), respond politely and naturally. Set isConversational to true, noEvidence to false, and provide your response in the answer field.
+2. For all other questions, answer based ONLY on the provided document context below. Do not use prior knowledge. Set isConversational to false.
+3. If the answer to a document-related question is not found in the context, set noEvidence to true and set the answer field exactly to "I couldn't find sufficient evidence in the provided document to answer this question."
 4. Be clear, concise, and helpful.
+
+You MUST respond in the following JSON format:
+{
+  "isConversational": boolean,
+  "noEvidence": boolean,
+  "answer": "your answer here"
+}
 
 Document Context:
 ${contextText}
         `;
 
-        // 6. Generate the Response with History
+        // 6. Generate the Response with History in JSON format
         const finalMessages = [
             { role: "system", content: systemPrompt },
             ...history.map(m => ({ role: m.role, content: m.content })),
@@ -110,10 +121,71 @@ ${contextText}
         ];
 
         const response = await model.invoke(finalMessages);
+        
+        let resultJson;
+        let content = response.content.trim();
+        if (content.startsWith("```")) {
+            content = content.replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
+        }
+        try {
+            resultJson = JSON.parse(content);
+        } catch (e) {
+            const startIdx = content.indexOf('{');
+            const endIdx = content.lastIndexOf('}');
+            if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                try {
+                    resultJson = JSON.parse(content.substring(startIdx, endIdx + 1));
+                } catch (innerError) {
+                    // Fallback below
+                }
+            }
+            
+            if (!resultJson) {
+                console.warn("Failed to parse JSON response from LLM, falling back to plain text parsing:", response.content);
+                const isRefusal = response.content.includes("I don't have enough information") || 
+                                  response.content.includes("I couldn't find sufficient evidence") ||
+                                  response.content.includes("sufficient evidence");
+                resultJson = {
+                    isConversational: !isRefusal && maxScore < 0.4 && (query.length < 15 || query.includes("hello") || query.includes("hi")),
+                    noEvidence: isRefusal,
+                    answer: response.content
+                };
+            }
+        }
+
+        let answer = resultJson.answer || "No response generated.";
+        let confidence = 'HIGH';
+
+        if (resultJson.isConversational) {
+            confidence = 'HIGH';
+        } else {
+            // Apply threshold rules based on maximum similarity score
+            if (maxScore >= 0.7) {
+                confidence = 'HIGH';
+            } else if (maxScore >= 0.4) {
+                confidence = 'LOW';
+            } else {
+                confidence = 'NOT_FOUND';
+            }
+
+            // Force NOT_FOUND if the LLM flagged noEvidence
+            if (resultJson.noEvidence) {
+                confidence = 'NOT_FOUND';
+            }
+
+            // If not found, override the answer text to prevent hallucination
+            if (confidence === 'NOT_FOUND') {
+                answer = "I couldn't find sufficient evidence in the provided document to answer this question.";
+            }
+        }
+
+        console.log(`Query: "${query}" | Confidence: ${confidence} | Max Score: ${maxScore.toFixed(4)}`);
 
         return {
-            answer: response.content,
-            sources: topChunks
+            answer: answer,
+            sources: topChunks,
+            score: maxScore,
+            confidence: confidence
         };
     } catch (error) {
         console.error("Error during retrieval:", error);
