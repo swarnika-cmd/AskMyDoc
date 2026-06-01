@@ -41,4 +41,4 @@ Go to `http://localhost:3000` to interact with your local server.
   * Keep RAG retrieval logic isolated in `retrieve.js`.
   * Keep document parsing and chunking in `ingest.js`.
   * Keep routing and API handlers in `server.js`.
-* **Testing:** Test new code locally by uploading sample files (e.g. `sample.pdf`) and running conversational queries.
+* **Testing:** Test new code locally by uploading sample files (e.g. `demo/sample.pdf`) and running conversational queries.
