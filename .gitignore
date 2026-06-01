@@ -1,4 +1,6 @@
 node_modules/
 .env
-*.md
-!README.md
+.DS_Store
+*.log
+uploads/*
+!uploads/demo-rbi.pdf
